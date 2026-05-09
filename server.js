@@ -7,14 +7,15 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-const serviceAccount = require('./serviceAccountCredentials.json');
-
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+  })
 });
 
 let fcmTokens = {};
-let orders = [];
 
 app.post('/register-token', (req, res) => {
   const { token, phone } = req.body;
