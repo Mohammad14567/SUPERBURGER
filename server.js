@@ -2,14 +2,17 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
-const serviceAccount = require('./serviceAccountCredentials.json');
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n')
+  })
 });
 
 let fcmTokens = {};
@@ -24,19 +27,16 @@ app.post('/send-notification', async (req, res) => {
   const { phone, title, body } = req.body;
   try {
     const token = fcmTokens[phone];
-    if (!token) return res.json({ success: false, message: 'No token' });
-    
+    if (!token) return res.json({ success: false });
     await admin.messaging().send({
       token: token,
       notification: { title, body },
-      android: { notification: { channelId: 'superburger', title, body, icon: 'ic_notification', color: '#F5C518' } }
+      android: { notification: { channelId: 'superburger', title, body } }
     });
-    
     res.json({ success: true });
-  } catch (error) {
-    res.json({ success: false, error: error.message });
+  } catch (e) {
+    res.json({ success: false });
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(3000, () => console.log('Server running!'));
